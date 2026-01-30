@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
+import { normalizeProjects } from '@/lib/project-normalizer';
 
 // Define the Project schema
 const projectSchema = new mongoose.Schema(
@@ -56,6 +57,27 @@ const projectSchema = new mongoose.Schema(
     views: {
       type: Number,
       default: 0
+    },
+    // New schema fields (optional for backward compatibility)
+    category: {
+      type: String,
+      default: ''
+    },
+    thumbnail: {
+      type: String,
+      default: ''
+    },
+    year: {
+      type: String,
+      default: ''
+    },
+    duration: {
+      type: String,
+      default: ''
+    },
+    youtubeUrl: {
+      type: String,
+      default: ''
     }
   },
   {
@@ -106,9 +128,12 @@ export async function POST(request: Request) {
     const Project = connection.model('Project', projectSchema);
     
     // Fetch projects
-    const projects = await Project.find({});
+    const projects = await Project.find({}).lean();
     
-    return NextResponse.json(projects);
+    // Normalize projects to ensure consistent structure and handle any missing fields
+    const normalizedProjects = normalizeProjects(projects);
+    
+    return NextResponse.json(normalizedProjects);
   } catch (error: any) {
     console.error('Error in API route:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

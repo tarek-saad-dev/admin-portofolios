@@ -9,6 +9,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { Plus, X } from "lucide-react"
 import { Project } from "@/components/portfolio-selector"
 import { useToast } from "@/components/ui/use-toast"
+import { getDbUriForPortfolio } from "@/lib/portfolio-config"
+import { normalizeProject } from "@/lib/project-normalizer"
+import { isValidYouTubeUrl, getThumbnailFromUrl } from "@/lib/youtube-utils"
 
 // Updating the ProjectForm props to handle editing
 interface ProjectFormProps {
@@ -39,6 +42,7 @@ export function ProjectForm({
     imagePaths: [],
     ghLink: "",
     demoLink: "",
+    youtubeUrl: "",
     skills: [],
     technologies: [],
     tools: [],
@@ -46,6 +50,7 @@ export function ProjectForm({
     date: new Date().toISOString().split('T')[0],
     views: 0
   })
+  const [youtubeError, setYoutubeError] = useState<string>("")
   
   // Update form when projectToEdit changes
   useEffect(() => {
@@ -53,7 +58,8 @@ export function ProjectForm({
       setNewProject({
         ...projectToEdit,
         // Ensure date is in the correct format
-        date: projectToEdit.date || new Date().toISOString().split('T')[0]
+        date: projectToEdit.date || new Date().toISOString().split('T')[0],
+        youtubeUrl: projectToEdit.youtubeUrl || ""
       });
     } else if (!open && !isEditMode) {
       // Reset form when dialog closes (but not in edit mode)
@@ -64,6 +70,7 @@ export function ProjectForm({
         imagePaths: [],
         ghLink: "",
         demoLink: "",
+        youtubeUrl: "",
         skills: [],
         technologies: [],
         tools: [],
@@ -71,6 +78,7 @@ export function ProjectForm({
         date: new Date().toISOString().split('T')[0],
         views: 0
       });
+      setYoutubeError("");
     }
   }, [projectToEdit, open, isEditMode]);
 
@@ -86,6 +94,25 @@ export function ProjectForm({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setNewProject(prev => ({ ...prev, [name]: value }));
+    
+    // Handle YouTube URL validation and thumbnail generation
+    if (name === 'youtubeUrl') {
+      if (!value.trim()) {
+        setYoutubeError("");
+        return;
+      }
+      
+      if (isValidYouTubeUrl(value)) {
+        setYoutubeError("");
+        // Auto-generate thumbnail if YouTube URL is valid
+        const thumbnail = getThumbnailFromUrl(value);
+        if (thumbnail && selectedPortfolio === 'video') {
+          setNewProject(prev => ({ ...prev, thumbnail }));
+        }
+      } else {
+        setYoutubeError("Please enter a valid YouTube URL");
+      }
+    }
   }
 
   // Handlers for array fields
@@ -154,30 +181,8 @@ export function ProjectForm({
     setIsSubmitting(true);
     
     try {
-      // Get the database URI for the selected portfolio
-      const portfolios = [  
-        { 
-          id: "fullstack", 
-          name: "Full Stack Portfolio", 
-          dbUri: "mongodb+srv://Tarek:SAad1976t@cluster0.cqa4kwi.mongodb.net/portofolio?retryWrites=true&w=majority&appName=Cluster0" 
-        },
-        { 
-          id: "graphics", 
-          name: "Graphic Design Portfolio", 
-          dbUri: "mongodb+srv://Tarek:SAad1976t@cluster0.cqa4kwi.mongodb.net/portofolio-graphic-design?retryWrites=true&w=majority&appName=Cluster0" 
-        },
-        { 
-          id: "video", 
-          name: "Video Editing Portfolio", 
-          dbUri: "mongodb+srv://Tarek:SAad1976t@cluster0.cqa4kwi.mongodb.net/portofolio-video-editing?retryWrites=true&w=majority&appName=Cluster0" 
-        },
-        { id: "professional", name: "Professional Portfolio", dbUri: "mongodb+srv://Tarek:SAad1976t@cluster0.cqa4kwi.mongodb.net/" },
-        { id: "creative", name: "Creative Portfolio", dbUri: "" },
-        { id: "technical", name: "Technical Portfolio", dbUri: "" },
-      ];
-      
-      const portfolio = portfolios.find(p => p.id === selectedPortfolio);
-      const dbUri = portfolio?.dbUri || "";
+      // Get the database URI for the selected portfolio from environment variables
+      const dbUri = getDbUriForPortfolio(selectedPortfolio);
       
       if (!dbUri) {
         toast({
@@ -211,7 +216,10 @@ export function ProjectForm({
       } else {
         // Generate a new ID for new project
         const newId = projects.length > 0 
-          ? Math.max(...projects.map(p => p.id)) + 1 
+          ? Math.max(...projects.map(p => {
+              const id = p.id;
+              return typeof id === 'number' ? id : (typeof id === 'string' && /^\d+$/.test(id) ? parseInt(id, 10) : 0);
+            }).filter(id => id > 0)) + 1 
           : 1;
         
         // Create the complete project object
@@ -239,11 +247,14 @@ export function ProjectForm({
       
       const result = await response.json();
       
+      // Normalize the project from API response
+      const normalizedProject = normalizeProject(result.project || result);
+      
       // Call the appropriate callback
       if (isEditMode && onProjectUpdated) {
-        onProjectUpdated(result.project);
+        onProjectUpdated(normalizedProject);
       } else {
-        onProjectAdded(result.project);
+        onProjectAdded(normalizedProject);
       }
       
       // Reset form if not in edit mode
@@ -255,6 +266,7 @@ export function ProjectForm({
           imagePaths: [],
           ghLink: "",
           demoLink: "",
+          youtubeUrl: "",
           skills: [],
           technologies: [],
           tools: [],
@@ -262,6 +274,7 @@ export function ProjectForm({
           date: new Date().toISOString().split('T')[0],
           views: 0
         });
+        setYoutubeError("");
       }
       
       // Show success message
@@ -415,6 +428,30 @@ export function ProjectForm({
                 onChange={handleInputChange}
                 className="col-span-3"
               />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="youtubeUrl" className="text-right">
+                YouTube URL
+              </Label>
+              <div className="col-span-3">
+                <Input
+                  id="youtubeUrl"
+                  name="youtubeUrl"
+                  type="url"
+                  value={newProject.youtubeUrl || ""}
+                  onChange={handleInputChange}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  className={youtubeError ? "border-red-500" : ""}
+                />
+                {youtubeError && (
+                  <p className="text-xs text-red-500 mt-1">{youtubeError}</p>
+                )}
+                {selectedPortfolio === 'video' && newProject.youtubeUrl && !youtubeError && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Thumbnail will be auto-generated from YouTube
+                  </p>
+                )}
+              </div>
             </div>
             
             {/* Skills */}

@@ -58,7 +58,6 @@ const projectSchema = new mongoose.Schema(
       type: Number,
       default: 0
     },
-    // New schema fields (optional for backward compatibility)
     category: {
       type: String,
       default: ''
@@ -88,23 +87,18 @@ const projectSchema = new mongoose.Schema(
 // Track connections by URI
 const connections: { [key: string]: mongoose.Connection } = {};
 
-// Connect to MongoDB with a specific URI
 async function connectToDatabase(dbUri: string) {
   try {
-    // If we already have a connection for this URI, return it
     if (connections[dbUri]) {
       return connections[dbUri];
     }
     
-    // Close any existing default connection
     if (mongoose.connection.readyState !== 0) {
       await mongoose.connection.close();
     }
     
-    // Create a new connection
     const connection = await mongoose.createConnection(dbUri);
     connections[dbUri] = connection;
-    console.log(`Connected to MongoDB: ${dbUri}`);
     
     return connection;
   } catch (error) {
@@ -113,38 +107,43 @@ async function connectToDatabase(dbUri: string) {
   }
 }
 
-export async function POST(request: Request) {
+// DELETE - Delete a project
+export async function DELETE(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
   try {
-    const { project, dbUri } = await request.json();
+    const { id } = params;
+    const { searchParams } = new URL(request.url);
+    const portfolioId = searchParams.get('portfolioId') || 'fullstack';
     
-    if (!project || !dbUri) {
-      return NextResponse.json({ 
-        error: 'Project data and database URI are required' 
-      }, { status: 400 });
+    // Get database URI from portfolio config
+    const { getDbUriForPortfolio } = await import('@/lib/portfolio-config');
+    const dbUri = getDbUriForPortfolio(portfolioId);
+    
+    if (!dbUri) {
+      return NextResponse.json({ error: 'Database URI not found for portfolio' }, { status: 400 });
     }
     
-    // Connect to the specific database
     const connection = await connectToDatabase(dbUri);
-    
-    // Create a model using this specific connection
     const Project = connection.model('Project', projectSchema);
     
-    // Create the new project
-    const newProject = new Project(project);
-    await newProject.save();
+    // Convert id to number if it's a string
+    const projectId = typeof id === 'string' && /^\d+$/.test(id) ? parseInt(id, 10) : id;
     
-    // Normalize the project before returning
-    const normalizedProject = normalizeProject(newProject.toObject());
+    const deletedProject = await Project.findOneAndDelete({ id: projectId });
+    
+    if (!deletedProject) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
     
     return NextResponse.json({ 
       success: true, 
-      message: 'Project added successfully',
-      project: normalizedProject
+      message: 'Project deleted successfully'
     });
   } catch (error: any) {
-    console.error('Error adding project:', error);
-    return NextResponse.json({ 
-      error: error.message 
-    }, { status: 500 });
+    console.error('Error deleting project:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+

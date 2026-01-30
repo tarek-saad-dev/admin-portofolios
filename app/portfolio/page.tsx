@@ -10,6 +10,7 @@ import { ProjectsList } from "@/components/projects/projects-list"
 import { SkillsList } from "@/components/skills/skills-list"
 import { ExperiencesList } from "@/components/experiences/experiences-list"
 import { CertificatesList } from "@/components/certificates/certificates-list"
+import { getDbUriForPortfolio } from "@/lib/portfolio-config"
 
 export default function PortfolioCluster() {
   const [selectedPortfolio, setSelectedPortfolio] = useState("")
@@ -50,6 +51,14 @@ export default function PortfolioCluster() {
 
   const handleProjectAdded = (newProject: Project) => {
     setProjects(prev => [...prev, newProject])
+  }
+
+  const handleProjectDeleted = (projectId: number | string) => {
+    setProjects(prev => prev.filter(p => {
+      const pid = String(p.id ?? '');
+      const deleteId = String(projectId ?? '');
+      return pid !== deleteId;
+    }))
   }
 
   const handleSkillAdded = (newSkill: Skill) => {
@@ -105,30 +114,9 @@ export default function PortfolioCluster() {
     setCurrentTab(value)
   }
 
-  // Function to get the database URI for the selected portfolio
-  const getDbUriForPortfolio = (portfolioId: string): string => {
-    const portfolios: Portfolio[] = [  
-      { 
-        id: "fullstack", 
-        name: "Full Stack Portfolio", 
-        dbUri: "mongodb+srv://Tarek:SAad1976t@cluster0.cqa4kwi.mongodb.net/portofolio?retryWrites=true&w=majority&appName=Cluster0" 
-      },
-      { 
-        id: "graphics", 
-        name: "Graphic Design Portfolio", 
-        dbUri: "mongodb+srv://Tarek:SAad1976t@cluster0.cqa4kwi.mongodb.net/portofolio-graphic-design?retryWrites=true&w=majority&appName=Cluster0" 
-      },
-      { 
-        id: "video", 
-        name: "Video Editing Portfolio", 
-        dbUri: "mongodb+srv://Tarek:SAad1976t@cluster0.cqa4kwi.mongodb.net/portofolio-video-editing?retryWrites=true&w=majority&appName=Cluster0" 
-      },
-      { id: "creative", name: "Creative Portfolio", dbUri: "" },
-      { id: "technical", name: "Technical Portfolio", dbUri: "" },
-    ];
-    
-    const portfolio = portfolios.find(p => p.id === portfolioId);
-    return portfolio?.dbUri || "";
+  // Function to get the database URI for the selected portfolio from environment variables
+  const getDbUri = (portfolioId: string): string => {
+    return getDbUriForPortfolio(portfolioId);
   }
 
   return (
@@ -179,7 +167,8 @@ export default function PortfolioCluster() {
               <ProjectsList 
                 projects={projects} 
                 selectedPortfolio={selectedPortfolio} 
-                onProjectAdded={handleProjectAdded} 
+                onProjectAdded={handleProjectAdded}
+                onProjectDeleted={handleProjectDeleted}
               />
             )}
           </TabsContent>
@@ -195,7 +184,7 @@ export default function PortfolioCluster() {
               skills={skills}
               isLoading={isLoadingSkills}
               selectedPortfolio={selectedPortfolio}
-              getDbUriForPortfolio={getDbUriForPortfolio}
+              getDbUriForPortfolio={getDbUri}
               onSkillAdded={handleSkillAdded}
               onSkillDeleted={handleSkillDeleted}
             />
@@ -207,7 +196,7 @@ export default function PortfolioCluster() {
               experiences={experiences}
               isLoading={isLoadingExperiences}
               selectedPortfolio={selectedPortfolio}
-              getDbUriForPortfolio={getDbUriForPortfolio}
+              getDbUriForPortfolio={getDbUri}
               onExperienceAdded={handleExperienceAdded}
               onExperienceEdited={handleExperienceEdited}
               onExperienceDeleted={handleExperienceDeleted}
@@ -220,7 +209,7 @@ export default function PortfolioCluster() {
               certificates={certificates}
               isLoading={isLoadingCertificates}
               selectedPortfolio={selectedPortfolio}
-              getDbUriForPortfolio={getDbUriForPortfolio}
+              getDbUriForPortfolio={getDbUri}
               onCertificateAdded={handleCertificateAdded}
               onCertificateEdited={handleCertificateEdited}
               onCertificateDeleted={handleCertificateDeleted}

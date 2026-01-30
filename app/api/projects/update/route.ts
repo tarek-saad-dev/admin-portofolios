@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
+import { normalizeProject } from '@/lib/project-normalizer';
 
 // Define the Project schema (same as in add route)
 const projectSchema = new mongoose.Schema(
@@ -56,6 +57,27 @@ const projectSchema = new mongoose.Schema(
     views: {
       type: Number,
       default: 0
+    },
+    // New schema fields (optional for backward compatibility)
+    category: {
+      type: String,
+      default: ''
+    },
+    thumbnail: {
+      type: String,
+      default: ''
+    },
+    year: {
+      type: String,
+      default: ''
+    },
+    duration: {
+      type: String,
+      default: ''
+    },
+    youtubeUrl: {
+      type: String,
+      default: ''
     }
   },
   {
@@ -120,10 +142,13 @@ export async function PUT(request: Request) {
       }, { status: 404 });
     }
     
+    // Normalize the project before returning
+    const normalizedProject = normalizeProject(updatedProject.toObject());
+    
     return NextResponse.json({ 
       success: true, 
       message: 'Project updated successfully',
-      project: updatedProject
+      project: normalizedProject
     });
   } catch (error: any) {
     console.error('Error updating project:', error);

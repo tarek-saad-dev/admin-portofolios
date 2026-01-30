@@ -2,6 +2,8 @@
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState, useEffect } from "react"
+import { getPortfolioConfigs, getDbUriForPortfolio as getDbUri } from "@/lib/portfolio-config"
+import { normalizeProjects } from "@/lib/project-normalizer"
 
 // Define the Portfolio type
 export interface Portfolio {
@@ -12,7 +14,7 @@ export interface Portfolio {
 
 // Define Project interface
 export interface Project {
-  id: number;
+  id: number | string; // Can be number or string, and may come from _id
   title: string;
   description: string;
   imgPath: string;
@@ -25,6 +27,14 @@ export interface Project {
   keyFeatures?: string[];
   date: string;
   views?: number;
+  // New schema fields (optional for backward compatibility)
+  category?: string;
+  thumbnail?: string;
+  year?: string;
+  duration?: string;
+  youtubeUrl?: string;
+  // MongoDB _id field (may be present in API responses)
+  _id?: string;
 }
 
 // Define Skill interface
@@ -84,32 +94,14 @@ export default function PortfolioSelector({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Array of portfolio objects with title and database URI
-  const portfolios: Portfolio[] = [  
-    { 
-      id: "fullstack", 
-      name: "Full Stack Portfolio", 
-      dbUri: "mongodb+srv://Tarek:SAad1976t@cluster0.cqa4kwi.mongodb.net/portofolio?retryWrites=true&w=majority&appName=Cluster0" 
-    },
-    { 
-      id: "graphics", 
-      name: "Graphic Design Portfolio", 
-      dbUri: "mongodb+srv://Tarek:SAad1976t@cluster0.cqa4kwi.mongodb.net/portofolio-graphic-design?retryWrites=true&w=majority&appName=Cluster0" 
-    },
-    { 
-      id: "video", 
-      name: "Video Editing Portfolio", 
-      dbUri: "mongodb+srv://Tarek:SAad1976t@cluster0.cqa4kwi.mongodb.net/portofolio-video-editing?retryWrites=true&w=majority&appName=Cluster0" 
-    },
-    { id: "creative", name: "Creative Portfolio", dbUri: "" },
-    { id: "technical", name: "Technical Portfolio", dbUri: "" },
-  ]
+  // Array of portfolio objects with title and database URI from environment variables
+  const portfolios: Portfolio[] = getPortfolioConfigs();
 
   // Function to get the database URI for the selected portfolio
   const getDbUriForPortfolio = (portfolioId: string): string => {
-    const portfolio = portfolios.find(p => p.id === portfolioId);
-    console.log("Selected portfolio URI:", portfolio?.dbUri);
-    return portfolio?.dbUri || "";
+    const dbUri = getDbUri(portfolioId);
+    console.log("Selected portfolio URI:", dbUri);
+    return dbUri;
   }
 
   // Use an API route instead of direct Mongoose connection for projects
@@ -140,14 +132,18 @@ export default function PortfolioSelector({
       
       const data = await response.json();
       console.log("Projects loaded:", data.length);
-      setProjects(data);
       
-      // Pass the projects data to the parent component
+      // Normalize projects to ensure consistent structure
+      const normalizedProjects = normalizeProjects(data);
+      
+      setProjects(normalizedProjects);
+      
+      // Pass the normalized projects data to the parent component
       if (onProjectsLoaded) {
-        onProjectsLoaded(data);
+        onProjectsLoaded(normalizedProjects);
       }
       
-      return data;
+      return normalizedProjects;
     } catch (error: any) {
       setError(`Error fetching projects: ${error.message}`);
       console.error("Error fetching projects:", error);
