@@ -72,28 +72,43 @@ export interface Certificate {
   updatedAt?: string;
 }
 
-export default function PortfolioSelector({ 
-  onChange, 
+// Define Tool interface
+export interface Tool {
+  _id: string;
+  name: string;
+  category: string;
+  iconType: string;
+  iconName: string;
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export default function PortfolioSelector({
+  onChange,
   value,
   onProjectsLoaded,
   onSkillsLoaded,
   onExperiencesLoaded,
-  onCertificatesLoaded
-}: { 
+  onCertificatesLoaded,
+  onToolsLoaded
+}: {
   onChange: (value: string) => void;
   value: string;
   onProjectsLoaded?: (projects: Project[]) => void;
   onSkillsLoaded?: (skills: Skill[]) => void;
   onExperiencesLoaded?: (experiences: Experience[]) => void;
   onCertificatesLoaded?: (certificates: Certificate[]) => void;
+  onToolsLoaded?: (tools: Tool[]) => void;
 }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [tools, setTools] = useState<Tool[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Array of portfolio objects with title and database URI from environment variables
   const portfolios: Portfolio[] = getPortfolioConfigs();
 
@@ -110,13 +125,13 @@ export default function PortfolioSelector({
     try {
       setLoading(true);
       setError(null);
-      
+
       const dbUri = getDbUriForPortfolio(portfolioId);
       if (!dbUri) {
         setError("No database URI found for the selected portfolio");
         return [];
       }
-      
+
       // Use an API route instead of direct database access
       const response = await fetch('/api/projects', {
         method: 'POST',
@@ -125,24 +140,24 @@ export default function PortfolioSelector({
         },
         body: JSON.stringify({ dbUri, portfolioId }),
       });
-      
+
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);
       }
-      
+
       const data = await response.json();
       console.log("Projects loaded:", data.length);
-      
+
       // Normalize projects to ensure consistent structure
       const normalizedProjects = normalizeProjects(data);
-      
+
       setProjects(normalizedProjects);
-      
+
       // Pass the normalized projects data to the parent component
       if (onProjectsLoaded) {
         onProjectsLoaded(normalizedProjects);
       }
-      
+
       return normalizedProjects;
     } catch (error: any) {
       setError(`Error fetching projects: ${error.message}`);
@@ -159,13 +174,13 @@ export default function PortfolioSelector({
     try {
       setLoading(true);
       setError(null);
-      
+
       const dbUri = getDbUriForPortfolio(portfolioId);
       if (!dbUri) {
         setError("No database URI found for the selected portfolio");
         return [];
       }
-      
+
       // Use an API route for skills
       const response = await fetch('/api/skills', {
         method: 'POST',
@@ -174,20 +189,20 @@ export default function PortfolioSelector({
         },
         body: JSON.stringify({ dbUri, portfolioId }),
       });
-      
+
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);
       }
-      
+
       const data = await response.json();
       console.log("Skills loaded:", data.length);
       setSkills(data);
-      
+
       // Pass the skills data to the parent component
       if (onSkillsLoaded) {
         onSkillsLoaded(data);
       }
-      
+
       return data;
     } catch (error: any) {
       setError(`Error fetching skills: ${error.message}`);
@@ -204,13 +219,13 @@ export default function PortfolioSelector({
     try {
       setLoading(true);
       setError(null);
-      
+
       const dbUri = getDbUriForPortfolio(portfolioId);
       if (!dbUri) {
         setError("No database URI found for the selected portfolio");
         return [];
       }
-      
+
       // Use an API route for experiences
       const response = await fetch('/api/experiences', {
         method: 'POST',
@@ -219,20 +234,20 @@ export default function PortfolioSelector({
         },
         body: JSON.stringify({ dbUri, portfolioId }),
       });
-      
+
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);
       }
-      
+
       const data = await response.json();
       console.log("Experiences loaded:", data.length);
       setExperiences(data);
-      
+
       // Pass the experiences data to the parent component
       if (onExperiencesLoaded) {
         onExperiencesLoaded(data);
       }
-      
+
       return data;
     } catch (error: any) {
       setError(`Error fetching experiences: ${error.message}`);
@@ -249,13 +264,13 @@ export default function PortfolioSelector({
     try {
       setLoading(true);
       setError(null);
-      
+
       const dbUri = getDbUriForPortfolio(portfolioId);
       if (!dbUri) {
         setError("No database URI found for the selected portfolio");
         return [];
       }
-      
+
       // Use an API route for certificates
       const response = await fetch('/api/certificates', {
         method: 'POST',
@@ -264,20 +279,20 @@ export default function PortfolioSelector({
         },
         body: JSON.stringify({ dbUri, portfolioId }),
       });
-      
+
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);
       }
-      
+
       const data = await response.json();
       console.log("Certificates loaded:", data.length);
       setCertificates(data);
-      
+
       // Pass the certificates data to the parent component
       if (onCertificatesLoaded) {
         onCertificatesLoaded(data);
       }
-      
+
       return data;
     } catch (error: any) {
       setError(`Error fetching certificates: ${error.message}`);
@@ -288,10 +303,55 @@ export default function PortfolioSelector({
     }
   }
 
+  // Use an API route for tools
+  const fetchTools = async (portfolioId: string) => {
+    console.log("Fetching tools for portfolio:", portfolioId);
+    try {
+      setLoading(true);
+      setError(null);
+
+      const dbUri = getDbUriForPortfolio(portfolioId);
+      if (!dbUri) {
+        setError("No database URI found for the selected portfolio");
+        return [];
+      }
+
+      // Use an API route for tools
+      const response = await fetch('/api/tools', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ dbUri, portfolioId }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("Tools loaded:", data.length);
+      setTools(data);
+
+      // Pass the tools data to the parent component
+      if (onToolsLoaded) {
+        onToolsLoaded(data);
+      }
+
+      return data;
+    } catch (error: any) {
+      setError(`Error fetching tools: ${error.message}`);
+      console.error("Error fetching tools:", error);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }
+
   // Fetch data when the selected portfolio changes
   useEffect(() => {
     let isMounted = true;
-    
+
     if (value) {
       // Fetch projects
       fetchProjects(value).then(data => {
@@ -299,29 +359,36 @@ export default function PortfolioSelector({
           onProjectsLoaded(data);
         }
       });
-      
+
       // Fetch skills
       fetchSkills(value).then(data => {
         if (isMounted && onSkillsLoaded) {
           onSkillsLoaded(data);
         }
       });
-      
+
       // Fetch experiences
       fetchExperiences(value).then(data => {
         if (isMounted && onExperiencesLoaded) {
           onExperiencesLoaded(data);
         }
       });
-      
+
       // Fetch certificates
       fetchCertificates(value).then(data => {
         if (isMounted && onCertificatesLoaded) {
           onCertificatesLoaded(data);
         }
       });
+
+      // Fetch tools
+      fetchTools(value).then(data => {
+        if (isMounted && onToolsLoaded) {
+          onToolsLoaded(data);
+        }
+      });
     }
-    
+
     // Cleanup function to prevent state updates if component unmounts
     return () => {
       isMounted = false;
@@ -330,13 +397,13 @@ export default function PortfolioSelector({
 
   return (
     <div className="flex flex-col space-y-2">
-      
+
       <label htmlFor="portfolio-select" className="text-sm font-medium">
         Select Portfolio
       </label>
 
       <Select value={value} onValueChange={onChange}>
-        
+
         <SelectTrigger id="portfolio-select" className="w-full md:w-[300px]">
           <SelectValue placeholder="Select a portfolio" />
         </SelectTrigger>
@@ -349,7 +416,7 @@ export default function PortfolioSelector({
           ))}
         </SelectContent>
       </Select>
-      
+
       {loading && <p className="text-sm text-gray-500">Loading data...</p>}
       {error && <p className="text-sm text-red-500">{error}</p>}
     </div>
