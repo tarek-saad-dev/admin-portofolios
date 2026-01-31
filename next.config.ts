@@ -10,6 +10,16 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  eslint: {
+    // Only run ESLint on these directories during production builds
+    dirs: ['app', 'components', 'lib', 'types'],
+    // Ignore ESLint errors during build (optional - can be removed if you want strict linting)
+    ignoreDuringBuilds: false,
+  },
+  typescript: {
+    // Ignore TypeScript errors during build (optional - can be removed if you want strict type checking)
+    ignoreBuildErrors: false,
+  },
 };
 
 export default nextConfig;

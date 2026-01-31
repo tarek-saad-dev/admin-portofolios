@@ -110,10 +110,10 @@ async function connectToDatabase(dbUri: string) {
 // DELETE - Delete a project
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const { searchParams } = new URL(request.url);
     const portfolioId = searchParams.get('portfolioId') || 'fullstack';
     
