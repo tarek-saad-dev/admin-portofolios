@@ -137,7 +137,12 @@ export default function IdeaCluster() {
   )
 }
 
-function IdeaItem({ title, type, date, preview }) {
+function IdeaItem({ title, type, date, preview }: {
+  title: string;
+  type: string;
+  date: string;
+  preview: string;
+}) {
   return (
     <div className="p-4 border rounded-lg">
       <div className="flex items-center justify-between mb-2">

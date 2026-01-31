@@ -110,7 +110,12 @@ export default function SkillCluster() {
   )
 }
 
-function SkillCard({ title, level, progress, lastUpdated }) {
+function SkillCard({ title, level, progress, lastUpdated }: {
+  title: string;
+  level: string;
+  progress: number;
+  lastUpdated: string;
+}) {
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -148,7 +153,12 @@ function SkillCard({ title, level, progress, lastUpdated }) {
   )
 }
 
-function LearningCard({ title, progress, startDate, resources }) {
+function LearningCard({ title, progress, startDate, resources }: {
+  title: string;
+  progress: number;
+  startDate: string;
+  resources: number;
+}) {
   return (
     <Card>
       <CardHeader>
@@ -182,7 +192,7 @@ function LearningCard({ title, progress, startDate, resources }) {
   )
 }
 
-function getLevelStars(level) {
+function getLevelStars(level: string): number {
   switch (level.toLowerCase()) {
     case "beginner":
       return 1
