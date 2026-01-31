@@ -11,9 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import PortfolioSelector from "@/components/portfolio-selector"
 
 export default function FeatureCluster() {
-  const [selectedPortfolio, setSelectedPortfolio] = useState("")
+  const [selectedPortfolio, setSelectedPortfolio] = useState<string>("")
 
-  const handlePortfolioChange = (value) => {
+  const handlePortfolioChange = (value: string) => {
     setSelectedPortfolio(value)
   }
 
@@ -160,7 +160,12 @@ export default function FeatureCluster() {
   )
 }
 
-function FeatureCard({ title, type, status, description }) {
+function FeatureCard({ title, type, status, description }: { 
+  title: string; 
+  type: string; 
+  status: string; 
+  description: string;
+}) {
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -187,7 +192,7 @@ function FeatureCard({ title, type, status, description }) {
   )
 }
 
-function StatusBadge({ status }) {
+function StatusBadge({ status }: { status: string }) {
   switch (status) {
     case "planned":
       return (
@@ -215,7 +220,7 @@ function StatusBadge({ status }) {
   }
 }
 
-function TypeBadge({ type }) {
+function TypeBadge({ type }: { type: string }) {
   switch (type) {
     case "coding":
       return (
