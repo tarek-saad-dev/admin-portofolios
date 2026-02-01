@@ -46,11 +46,11 @@ export default function AdminDashboard() {
     try {
       setLoading(true)
       const response = await fetch(`/api/video-projects?portfolioId=${portfolioId}`)
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch projects')
       }
-      
+
       const data = await response.json()
       const normalizedProjects = normalizeVideoProjects(data)
       setProjects(normalizedProjects)
@@ -255,6 +255,7 @@ export default function AdminDashboard() {
                   <TableHead className="w-[100px]">Thumbnail</TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead>Category</TableHead>
+                  <TableHead>Date</TableHead>
                   <TableHead>Year</TableHead>
                   <TableHead>Duration</TableHead>
                   <TableHead>Tools</TableHead>
@@ -287,6 +288,17 @@ export default function AdminDashboard() {
                     <TableCell className="font-medium">{project.title || 'Untitled'}</TableCell>
                     <TableCell>
                       <Badge variant="outline">{project.category || 'N/A'}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      {project.date ? (
+                        new Date(project.date).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })
+                      ) : (
+                        <Badge variant="destructive" className="text-xs">Missing</Badge>
+                      )}
                     </TableCell>
                     <TableCell>{project.year || 'N/A'}</TableCell>
                     <TableCell>{project.duration || '00:00'}</TableCell>

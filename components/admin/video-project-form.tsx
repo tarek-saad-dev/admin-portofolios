@@ -12,6 +12,7 @@ import { VideoProject, VideoProjectInput } from "@/types/video-project"
 import { isValidYouTubeUrl, getThumbnailFromUrl } from "@/lib/youtube-utils"
 import { normalizeVideoProject } from "@/lib/video-project-normalizer"
 import Image from "next/image"
+import { Badge } from "@/components/ui/badge"
 
 interface VideoProjectFormProps {
   open: boolean
@@ -21,10 +22,24 @@ interface VideoProjectFormProps {
   portfolioId?: string
 }
 
-export function VideoProjectForm({ 
-  open, 
-  onOpenChange, 
-  project, 
+// Helper function to convert ISO date to YYYY-MM-DD format for input[type="date"]
+const toDateInputValue = (isoDate: string | null | undefined): string => {
+  if (!isoDate) return "";
+  try {
+    const d = new Date(isoDate);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  } catch {
+    return "";
+  }
+};
+
+export function VideoProjectForm({
+  open,
+  onOpenChange,
+  project,
   onSuccess,
   portfolioId = 'video'
 }: VideoProjectFormProps) {
@@ -38,7 +53,8 @@ export function VideoProjectForm({
     tools: [],
     description: '',
     youtubeUrl: '',
-    thumbnail: null
+    thumbnail: null,
+    date: ''
   })
   const [toolsInput, setToolsInput] = useState('')
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null)
@@ -58,7 +74,8 @@ export function VideoProjectForm({
           tools: project.tools || [],
           description: project.description || '',
           youtubeUrl: project.youtubeUrl || '',
-          thumbnail: project.thumbnail || null
+          thumbnail: project.thumbnail || null,
+          date: toDateInputValue(project.date)
         })
         setToolsInput(project.tools?.join(', ') || '')
         setThumbnailPreview(project.thumbnail || null)
@@ -72,7 +89,8 @@ export function VideoProjectForm({
           tools: [],
           description: '',
           youtubeUrl: '',
-          thumbnail: null
+          thumbnail: null,
+          date: ''
         })
         setToolsInput('')
         setThumbnailPreview(null)
@@ -84,7 +102,7 @@ export function VideoProjectForm({
   // Handle YouTube URL change and auto-generate thumbnail
   const handleYouTubeUrlChange = (url: string) => {
     setFormData(prev => ({ ...prev, youtubeUrl: url }))
-    
+
     if (!url.trim()) {
       setThumbnailPreview(null)
       setFormData(prev => ({ ...prev, thumbnail: null }))
@@ -111,6 +129,17 @@ export function VideoProjectForm({
     setIsSubmitting(true)
 
     try {
+      // Validate date
+      if (!formData.date || !formData.date.trim()) {
+        toast({
+          title: "Validation Error",
+          description: "Project date is required",
+          variant: "destructive"
+        })
+        setIsSubmitting(false)
+        return
+      }
+
       // Validate YouTube URL
       if (!formData.youtubeUrl.trim()) {
         toast({
@@ -205,7 +234,7 @@ export function VideoProjectForm({
         <DialogHeader>
           <DialogTitle>{isEditMode ? 'Edit Video Project' : 'Add New Video Project'}</DialogTitle>
           <DialogDescription>
-            {isEditMode 
+            {isEditMode
               ? 'Update the details for this video project.'
               : 'Fill in the details for your new video project. The thumbnail will be auto-generated from the YouTube URL.'}
           </DialogDescription>
@@ -262,6 +291,24 @@ export function VideoProjectForm({
               </div>
             </div>
 
+            {/* Project Date */}
+            <div className="grid gap-2">
+              <Label htmlFor="date">
+                Project Date *
+                {isEditMode && !project?.date && (
+                  <Badge variant="destructive" className="ml-2">Missing Date</Badge>
+                )}
+              </Label>
+              <Input
+                id="date"
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                required
+              />
+              <p className="text-xs text-muted-foreground">The actual date of the project (used for sorting)</p>
+            </div>
+
             {/* Duration */}
             <div className="grid gap-2">
               <Label htmlFor="duration">Duration *</Label>
@@ -274,7 +321,7 @@ export function VideoProjectForm({
                 placeholder="12:34"
                 pattern="[0-9]{1,2}:[0-9]{2}"
               />
-              <p className="text-xs text-muted-foreground">Format: MM:SS or HH:MM:SS</p>
+              <p className="text-xs text-muted-foreground">Format: MM:SS or HH:MM:SS (video length)</p>
             </div>
 
             {/* YouTube URL */}
