@@ -23,7 +23,7 @@ import { addExperience, deleteExperience, editExperience } from "@/services/expe
 
 // Available organization logos
 const ORGANIZATION_LOGOS = [
-  { label: "None", value: "" },
+  { label: "No Logo", value: "__none__" },
   { label: "Brain GYM", value: "brain-gym.png" },
   { label: "Tech Corp", value: "tech-corp.svg" },
   { label: "Digital Agency", value: "digital-agency.png" },
@@ -424,8 +424,8 @@ export function ExperiencesList({
               </Label>
               <div className="col-span-3 space-y-2">
                 <Select
-                  value={newExperience.organizationLogoKey || ""}
-                  onValueChange={(value) => setNewExperience({ ...newExperience, organizationLogoKey: value })}
+                  value={newExperience.organizationLogoKey || undefined}
+                  onValueChange={(value) => setNewExperience({ ...newExperience, organizationLogoKey: value === "__none__" ? "" : value })}
                 >
                   <SelectTrigger id="experience-logo">
                     <SelectValue placeholder="Select organization logo" />
@@ -442,7 +442,7 @@ export function ExperiencesList({
                   <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/50">
                     <Building2 className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">
-                      Selected: {ORGANIZATION_LOGOS.find(l => l.value === newExperience.organizationLogoKey)?.label}
+                      Selected: {ORGANIZATION_LOGOS.find(l => l.value === newExperience.organizationLogoKey || (newExperience.organizationLogoKey === "" && l.value === "__none__"))?.label}
                     </span>
                   </div>
                 )}
@@ -572,8 +572,8 @@ export function ExperiencesList({
               </Label>
               <div className="col-span-3 space-y-2">
                 <Select
-                  value={editExperienceData.organizationLogoKey || ""}
-                  onValueChange={(value) => setEditExperienceData({ ...editExperienceData, organizationLogoKey: value })}
+                  value={editExperienceData.organizationLogoKey || undefined}
+                  onValueChange={(value) => setEditExperienceData({ ...editExperienceData, organizationLogoKey: value === "__none__" ? "" : value })}
                 >
                   <SelectTrigger id="edit-experience-logo">
                     <SelectValue placeholder="Select organization logo" />
@@ -590,7 +590,7 @@ export function ExperiencesList({
                   <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/50">
                     <Building2 className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">
-                      Selected: {ORGANIZATION_LOGOS.find(l => l.value === editExperienceData.organizationLogoKey)?.label}
+                      Selected: {ORGANIZATION_LOGOS.find(l => l.value === editExperienceData.organizationLogoKey || (editExperienceData.organizationLogoKey === "" && l.value === "__none__"))?.label}
                     </span>
                   </div>
                 )}
