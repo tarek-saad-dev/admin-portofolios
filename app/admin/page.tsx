@@ -71,7 +71,7 @@ export default function AdminDashboard() {
     fetchProjects()
   }, [])
 
-  // Filter projects
+  // Filter and sort projects
   useEffect(() => {
     let filtered = [...projects]
 
@@ -94,6 +94,13 @@ export default function AdminDashboard() {
     if (yearFilter !== "all") {
       filtered = filtered.filter(project => project.year === yearFilter)
     }
+
+    // Sort by date (descending - newest first)
+    filtered.sort((a, b) => {
+      const dateA = a.date ? new Date(a.date).getTime() : 0
+      const dateB = b.date ? new Date(b.date).getTime() : 0
+      return dateB - dateA
+    })
 
     setFilteredProjects(filtered)
   }, [projects, searchQuery, categoryFilter, yearFilter])
@@ -376,6 +383,17 @@ export default function AdminDashboard() {
               <CardContent>
                 <div className="flex flex-wrap gap-2 mb-4">
                   <Badge variant="outline">{project.category || 'N/A'}</Badge>
+                  {project.date ? (
+                    <Badge variant="default">
+                      {new Date(project.date).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </Badge>
+                  ) : (
+                    <Badge variant="destructive" className="text-xs">Missing Date</Badge>
+                  )}
                   <Badge variant="secondary">{project.year || 'N/A'}</Badge>
                   <Badge variant="secondary">{project.duration || '00:00'}</Badge>
                 </div>
