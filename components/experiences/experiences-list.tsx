@@ -1,14 +1,15 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Trash2, AlertCircle, Edit, GripVertical } from "lucide-react"
+import { Plus, Trash2, AlertCircle, Edit, GripVertical, Building2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Experience } from "@/types/experience"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -20,6 +21,16 @@ import {
 } from "@/components/ui/alert-dialog"
 import { addExperience, deleteExperience, editExperience } from "@/services/experience-service"
 
+// Available organization logos
+const ORGANIZATION_LOGOS = [
+  { label: "None", value: "" },
+  { label: "Brain GYM", value: "brain-gym.png" },
+  { label: "Tech Corp", value: "tech-corp.svg" },
+  { label: "Digital Agency", value: "digital-agency.png" },
+  { label: "Startup Inc", value: "startup-inc.svg" },
+  { label: "Enterprise Co", value: "enterprise-co.png" },
+]
+
 interface ExperiencesListProps {
   experiences: Experience[]
   isLoading: boolean
@@ -30,10 +41,10 @@ interface ExperiencesListProps {
   onExperienceDeleted: (experienceId: string) => void
 }
 
-export function ExperiencesList({ 
-  experiences, 
-  isLoading, 
-  selectedPortfolio, 
+export function ExperiencesList({
+  experiences,
+  isLoading,
+  selectedPortfolio,
   getDbUriForPortfolio,
   onExperienceAdded,
   onExperienceEdited,
@@ -47,7 +58,8 @@ export function ExperiencesList({
     duration: "",
     type: "",
     role: [""],
-    order: 0
+    order: 0,
+    organizationLogoKey: ""
   })
   const [editingExperience, setEditingExperience] = useState<Experience | null>(null)
   const [editExperienceData, setEditExperienceData] = useState<Omit<Experience, '_id'>>({
@@ -56,7 +68,8 @@ export function ExperiencesList({
     duration: "",
     type: "",
     role: [""],
-    order: 0
+    order: 0,
+    organizationLogoKey: ""
   })
   const [isAddingExperience, setIsAddingExperience] = useState(false)
   const [isEditingExperience, setIsEditingExperience] = useState(false)
@@ -122,9 +135,9 @@ export function ExperiencesList({
   // Function to handle adding a new experience
   const handleAddExperience = async () => {
     // Validate required fields
-    if (!newExperience.title.trim() || !newExperience.company.trim() || 
-        !newExperience.duration.trim() || !newExperience.type.trim() ||
-        newExperience.role.some(r => !r.trim())) {
+    if (!newExperience.title.trim() || !newExperience.company.trim() ||
+      !newExperience.duration.trim() || !newExperience.type.trim() ||
+      newExperience.role.some(r => !r.trim())) {
       setAddExperienceError("All fields are required");
       return;
     }
@@ -157,7 +170,8 @@ export function ExperiencesList({
         duration: "",
         type: "",
         role: [""],
-        order: experiences.length > 0 ? Math.max(...experiences.map(e => e.order)) + 1 : 0
+        order: experiences.length > 0 ? Math.max(...experiences.map(e => e.order)) + 1 : 0,
+        organizationLogoKey: ""
       });
       setIsAddExperienceDialogOpen(false);
     } catch (error: any) {
@@ -177,7 +191,8 @@ export function ExperiencesList({
       duration: experience.duration,
       type: experience.type,
       role: [...experience.role],
-      order: experience.order
+      order: experience.order,
+      organizationLogoKey: experience.organizationLogoKey || ""
     });
     setIsEditExperienceDialogOpen(true);
   };
@@ -187,9 +202,9 @@ export function ExperiencesList({
     if (!editingExperience) return;
 
     // Validate required fields
-    if (!editExperienceData.title.trim() || !editExperienceData.company.trim() || 
-        !editExperienceData.duration.trim() || !editExperienceData.type.trim() ||
-        editExperienceData.role.some(r => !r.trim())) {
+    if (!editExperienceData.title.trim() || !editExperienceData.company.trim() ||
+      !editExperienceData.duration.trim() || !editExperienceData.type.trim() ||
+      editExperienceData.role.some(r => !r.trim())) {
       setEditExperienceError("All fields are required");
       return;
     }
@@ -210,9 +225,9 @@ export function ExperiencesList({
       };
 
       const updatedExperience = await editExperience(
-        dbUri, 
-        selectedPortfolio, 
-        editingExperience._id, 
+        dbUri,
+        selectedPortfolio,
+        editingExperience._id,
         filteredExperience
       );
       console.log("Experience updated:", updatedExperience);
@@ -228,7 +243,8 @@ export function ExperiencesList({
         duration: "",
         type: "",
         role: [""],
-        order: 0
+        order: 0,
+        organizationLogoKey: ""
       });
       setIsEditExperienceDialogOpen(false);
     } catch (error: any) {
@@ -279,7 +295,8 @@ export function ExperiencesList({
             duration: "",
             type: "",
             role: [""],
-            order: experiences.length > 0 ? Math.max(...experiences.map(e => e.order)) + 1 : 0
+            order: experiences.length > 0 ? Math.max(...experiences.map(e => e.order)) + 1 : 0,
+            organizationLogoKey: ""
           });
           setIsAddExperienceDialogOpen(true);
         }}>
@@ -287,7 +304,7 @@ export function ExperiencesList({
           Add Experience
         </Button>
       </div>
-      
+
       {isLoading ? (
         <div className="flex justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
@@ -297,17 +314,17 @@ export function ExperiencesList({
           {experiences.map((experience) => (
             <div key={experience._id} className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow relative group">
               <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button 
-                  variant="outline" 
-                  size="icon" 
+                <Button
+                  variant="outline"
+                  size="icon"
                   className="h-8 w-8"
                   onClick={() => handleOpenEditDialog(experience)}
                 >
                   <Edit className="h-4 w-4" />
                 </Button>
-                <Button 
-                  variant="destructive" 
-                  size="icon" 
+                <Button
+                  variant="destructive"
+                  size="icon"
                   className="h-8 w-8"
                   onClick={() => setExperienceToDelete(experience)}
                 >
@@ -401,6 +418,36 @@ export function ExperiencesList({
                 placeholder="Full-time"
               />
             </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="experience-logo" className="text-right">
+                Logo
+              </Label>
+              <div className="col-span-3 space-y-2">
+                <Select
+                  value={newExperience.organizationLogoKey || ""}
+                  onValueChange={(value) => setNewExperience({ ...newExperience, organizationLogoKey: value })}
+                >
+                  <SelectTrigger id="experience-logo">
+                    <SelectValue placeholder="Select organization logo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ORGANIZATION_LOGOS.map((logo) => (
+                      <SelectItem key={logo.value} value={logo.value}>
+                        {logo.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {newExperience.organizationLogoKey && (
+                  <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/50">
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      Selected: {ORGANIZATION_LOGOS.find(l => l.value === newExperience.organizationLogoKey)?.label}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
             <div className="grid grid-cols-4 items-start gap-4">
               <Label className="text-right mt-2">
                 Roles
@@ -415,8 +462,8 @@ export function ExperiencesList({
                       className="flex-1"
                     />
                     {newExperience.role.length > 1 && (
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="icon"
                         onClick={() => handleRemoveRole(index)}
                         className="flex-shrink-0"
@@ -426,9 +473,9 @@ export function ExperiencesList({
                     )}
                   </div>
                 ))}
-                <Button 
-                  variant="outline" 
-                  type="button" 
+                <Button
+                  variant="outline"
+                  type="button"
                   onClick={() => handleAddRole()}
                   className="w-full mt-2"
                 >
@@ -519,6 +566,36 @@ export function ExperiencesList({
                 placeholder="Full-time"
               />
             </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-experience-logo" className="text-right">
+                Logo
+              </Label>
+              <div className="col-span-3 space-y-2">
+                <Select
+                  value={editExperienceData.organizationLogoKey || ""}
+                  onValueChange={(value) => setEditExperienceData({ ...editExperienceData, organizationLogoKey: value })}
+                >
+                  <SelectTrigger id="edit-experience-logo">
+                    <SelectValue placeholder="Select organization logo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ORGANIZATION_LOGOS.map((logo) => (
+                      <SelectItem key={logo.value} value={logo.value}>
+                        {logo.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {editExperienceData.organizationLogoKey && (
+                  <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/50">
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      Selected: {ORGANIZATION_LOGOS.find(l => l.value === editExperienceData.organizationLogoKey)?.label}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
             <div className="grid grid-cols-4 items-start gap-4">
               <Label className="text-right mt-2">
                 Roles
@@ -533,8 +610,8 @@ export function ExperiencesList({
                       className="flex-1"
                     />
                     {editExperienceData.role.length > 1 && (
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="icon"
                         onClick={() => handleRemoveRole(index, true)}
                         className="flex-shrink-0"
@@ -544,9 +621,9 @@ export function ExperiencesList({
                     )}
                   </div>
                 ))}
-                <Button 
-                  variant="outline" 
-                  type="button" 
+                <Button
+                  variant="outline"
+                  type="button"
                   onClick={() => handleAddRole(true)}
                   className="w-full mt-2"
                 >
@@ -600,7 +677,7 @@ export function ExperiencesList({
           )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleDeleteExperience}
               disabled={isDeletingExperience}
               className="bg-red-500 hover:bg-red-600"

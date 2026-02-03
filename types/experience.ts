@@ -6,6 +6,7 @@ export interface Experience {
   type: string;
   role: string[];
   order: number;
+  organizationLogoKey?: string;
   createdAt?: string;
   updatedAt?: string;
 }
