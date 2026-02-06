@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ArrowRight, Briefcase, Lightbulb, Wrench, Settings, BarChart } from "lucide-react"
+import { ArrowRight, Briefcase, Lightbulb, Wrench, Settings, BarChart, GraduationCap } from "lucide-react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
@@ -46,6 +46,13 @@ export default function Dashboard() {
           icon={<Settings className="h-8 w-8" />}
           href="/admin"
         />
+
+        <ClusterCard
+          title="LMS Admin"
+          description="Manage courses, units, lessons, challenges, and user progress"
+          icon={<GraduationCap className="h-8 w-8" />}
+          href="/lms"
+        />
       </div>
     </div>
   )
@@ -53,11 +60,11 @@ export default function Dashboard() {
 
 // function ClusterCard({ title, description, icon, href }) {
 
-function ClusterCard({ 
-  title, 
-  description, 
-  icon, 
-  href 
+function ClusterCard({
+  title,
+  description,
+  icon,
+  href
 }: {
   title: string;
   description: string;
