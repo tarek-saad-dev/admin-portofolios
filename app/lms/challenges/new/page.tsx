@@ -155,6 +155,7 @@ export default function NewChallengePage() {
                   <SelectItem value="ASSIST">ASSIST - Assisted Coding</SelectItem>
                   <SelectItem value="CODE">CODE - Code Challenge</SelectItem>
                   <SelectItem value="VIDEO">VIDEO - Video Content</SelectItem>
+                  <SelectItem value="AUDIO">AUDIO - Podcast Audio</SelectItem>
                   <SelectItem value="TEXT">TEXT - Text Content</SelectItem>
                   <SelectItem value="IMAGE">IMAGE - Image Content</SelectItem>
                   <SelectItem value="PDF">PDF - PDF Document</SelectItem>

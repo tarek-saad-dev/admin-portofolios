@@ -80,23 +80,33 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = ChallengeSchema.parse(body);
 
+    // Compute next order for this lesson
+    const maxOrderResult = await query<{ max_order: number | null }>(
+      `SELECT COALESCE(MAX("order"), -1) as max_order
+       FROM challenges
+       WHERE lesson_id = $1`,
+      [validatedData.lessonId],
+    );
+    const nextOrder = (maxOrderResult[0]?.max_order ?? -1) + 1;
+
     // Build values array with all columns, defaulting to null
     const result = await query<Challenge>(
-      `INSERT INTO challenges (lesson_id, type, label, "order", explanation, text_content, image_content, video_url, pdf_url,
+      `INSERT INTO challenges (lesson_id, type, label, "order", explanation, text_content, image_content, video_url, audio_url, pdf_url,
                               initial_code, language, instructions, test_cases, time_limit, memory_limit,
                               complete_question, project_structure, project_files, project_test_cases, test_setup, test_teardown,
                               web_view_content)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
        RETURNING *`,
       [
         validatedData.lessonId,
         validatedData.type,
         validatedData.label,
-        validatedData.order || 0,
+        nextOrder,
         validatedData.explanation || null,
         validatedData.textContent || null,
         validatedData.imageContent || null,
         validatedData.videoUrl || null,
+        validatedData.audioUrl || null,
         validatedData.pdfUrl || null,
         validatedData.initialCode || null,
         validatedData.language || null,
@@ -192,6 +202,11 @@ export async function PUT(request: NextRequest) {
     if (validatedData.videoUrl !== undefined) {
       setClauses.push(`video_url = $${paramIndex}`);
       params.push(validatedData.videoUrl);
+      paramIndex++;
+    }
+    if (validatedData.audioUrl !== undefined) {
+      setClauses.push(`audio_url = $${paramIndex}`);
+      params.push(validatedData.audioUrl);
       paramIndex++;
     }
     if (validatedData.pdfUrl !== undefined) {
@@ -337,11 +352,32 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    console.log("[LMS API] Challenge deleted:", id);
+    const deletedChallenge = result[0];
+
+    // Normalize order for remaining challenges in the same lesson
+    // This prevents gaps after deletion
+    if (deletedChallenge.lesson_id) {
+      const remainingChallenges = await query<{ id: number }>(
+        `SELECT id FROM challenges 
+         WHERE lesson_id = $1 
+         ORDER BY "order" ASC, id ASC`,
+        [deletedChallenge.lesson_id],
+      );
+
+      // Rewrite orders to be sequential (0, 1, 2, ...)
+      for (let index = 0; index < remainingChallenges.length; index++) {
+        await query(`UPDATE challenges SET "order" = $1 WHERE id = $2`, [
+          index,
+          remainingChallenges[index].id,
+        ]);
+      }
+    }
+
+    console.log("[LMS API] Challenge deleted and orders normalized:", id);
 
     return NextResponse.json({
       success: true,
-      data: result[0],
+      data: deletedChallenge,
     });
   } catch (error) {
     console.error("[LMS API] Error deleting challenge:", error);

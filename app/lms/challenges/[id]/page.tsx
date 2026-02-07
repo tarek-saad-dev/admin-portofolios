@@ -11,6 +11,28 @@ import { ArrowLeft, Plus, Trash2, Check, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import type { Challenge, QuizOption } from '@/types/lms'
 
+// Validate Google Drive audio URL (frontend - pattern only, no extension check)
+function isValidGoogleDriveAudioUrl(url: string): boolean {
+  if (!url) return false
+
+  // Check if it's a Google Drive URL
+  const isGoogleDrive = url.includes('drive.google.com')
+  if (!isGoogleDrive) return false
+
+  // Check if URL matches valid patterns and has extractable file ID
+  // Pattern 1: https://drive.google.com/file/d/{FILE_ID}/view
+  const pattern1 = /\/file\/d\/([a-zA-Z0-9_-]+)/
+  const match1 = url.match(pattern1)
+  if (match1) return true
+
+  // Pattern 2: https://drive.google.com/open?id={FILE_ID}
+  const pattern2 = /[?&]id=([a-zA-Z0-9_-]+)/
+  const match2 = url.match(pattern2)
+  if (match2) return true
+
+  return false
+}
+
 export default function ChallengeEditorPage() {
   const router = useRouter()
   const params = useParams()
@@ -22,6 +44,7 @@ export default function ChallengeEditorPage() {
   const [saving, setSaving] = useState(false)
   const [newOptionText, setNewOptionText] = useState('')
   const [validationError, setValidationError] = useState('')
+  const [audioLoading, setAudioLoading] = useState(false)
 
   useEffect(() => {
     if (challengeId) {
@@ -206,6 +229,18 @@ export default function ChallengeEditorPage() {
       return false
     }
 
+    // AUDIO validation
+    if (challenge.type === 'AUDIO') {
+      if (!challenge.audio_url) {
+        setValidationError('AUDIO challenges require an audio URL')
+        return false
+      }
+      if (!isValidGoogleDriveAudioUrl(challenge.audio_url)) {
+        setValidationError('Invalid Google Drive file link.')
+        return false
+      }
+    }
+
     setValidationError('')
     return true
   }
@@ -387,6 +422,68 @@ export default function ChallengeEditorPage() {
                   placeholder="https://youtube.com/watch?v=..."
                 />
               </div>
+            </div>
+          )}
+
+          {challenge.type === 'AUDIO' && (
+            <div className="space-y-4 border-t pt-6">
+              <div className="space-y-2">
+                <Label htmlFor="audio_url">Audio URL (Google Drive) *</Label>
+                <Input
+                  id="audio_url"
+                  value={challenge.audio_url || ''}
+                  onChange={(e) => setChallenge({ ...challenge, audio_url: e.target.value })}
+                  onBlur={(e) => {
+                    const url = e.target.value
+                    // Validate Google Drive URL pattern only (no extension check)
+                    if (url && !isValidGoogleDriveAudioUrl(url)) {
+                      setValidationError('Invalid Google Drive file link.')
+                      return
+                    }
+                    setValidationError('')
+                    handleUpdateChallengeField('audioUrl', url)
+                  }}
+                  placeholder="https://drive.google.com/file/d/..."
+                />
+                <p className="text-xs text-muted-foreground">
+                  Must be a Google Drive link to an mp3, wav, or m4a file
+                </p>
+              </div>
+
+              {/* Audio Preview */}
+              {challenge.audio_url && isValidGoogleDriveAudioUrl(challenge.audio_url) && (
+                <div className="space-y-2">
+                  <Label>Audio Preview</Label>
+
+                  {audioLoading && (
+                    <div className="flex items-center gap-2 p-4 border rounded-lg bg-muted/50">
+                      <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+                      <p className="text-sm text-muted-foreground">
+                        Loading your audio from Google Drive... This may take a moment.
+                      </p>
+                    </div>
+                  )}
+
+                  <audio
+                    controls
+                    src={`/api/media/gdrive?url=${encodeURIComponent(challenge.audio_url)}`}
+                    className="w-full"
+                    onLoadStart={() => setAudioLoading(true)}
+                    onCanPlay={() => setAudioLoading(false)}
+                    onLoadedData={() => setAudioLoading(false)}
+                    onError={() => {
+                      setAudioLoading(false)
+                      setValidationError('Failed to load audio preview. Ensure the file is shared as "Anyone with the link".')
+                    }}
+                  />
+
+                  {!audioLoading && (
+                    <p className="text-xs text-muted-foreground">
+                      If preview fails, ensure the file is shared as &quot;Anyone with the link&quot;
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

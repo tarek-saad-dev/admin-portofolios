@@ -5,6 +5,7 @@ export type ChallengeType =
   | "SELECT"
   | "CODE"
   | "VIDEO"
+  | "AUDIO"
   | "TEXT"
   | "PDF"
   | "IMAGE"
@@ -52,6 +53,7 @@ export interface Challenge {
   text_content?: string;
   image_content?: string;
   video_url?: string;
+  audio_url?: string;
   pdf_url?: string;
   initial_code?: string;
   language?: string;
