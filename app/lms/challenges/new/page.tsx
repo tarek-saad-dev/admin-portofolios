@@ -158,7 +158,7 @@ export default function NewChallengePage() {
                   <SelectItem value="AUDIO">AUDIO - Podcast Audio</SelectItem>
                   <SelectItem value="TEXT">TEXT - Text Content</SelectItem>
                   <SelectItem value="IMAGE">IMAGE - Image Content</SelectItem>
-                  <SelectItem value="PDF">PDF - PDF Document</SelectItem>
+                  <SelectItem value="PDF">PDF (Google Drive)</SelectItem>
                   <SelectItem value="COMPLETE">COMPLETE - Code Completion</SelectItem>
                   <SelectItem value="WRITE">WRITE - Writing Exercise</SelectItem>
                   <SelectItem value="PROJECT">PROJECT - Full Project</SelectItem>

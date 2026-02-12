@@ -7,12 +7,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { ArrowLeft, Plus, Trash2, Check, X } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Check, X, ExternalLink } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import type { Challenge, QuizOption } from '@/types/lms'
 
-// Validate Google Drive audio URL (frontend - pattern only, no extension check)
-function isValidGoogleDriveAudioUrl(url: string): boolean {
+// Validate Google Drive URL (frontend - pattern only, no extension check)
+function isValidGoogleDriveUrl(url: string): boolean {
   if (!url) return false
 
   // Check if it's a Google Drive URL
@@ -33,6 +33,27 @@ function isValidGoogleDriveAudioUrl(url: string): boolean {
   return false
 }
 
+// Alias for backward compatibility
+const isValidGoogleDriveAudioUrl = isValidGoogleDriveUrl
+const isValidGoogleDrivePdfUrl = isValidGoogleDriveUrl
+
+// Extract file ID from Google Drive URL for preview
+function extractGoogleDriveFileId(url: string): string | null {
+  if (!url) return null
+
+  // Pattern 1: https://drive.google.com/file/d/{FILE_ID}/view
+  const pattern1 = /\/file\/d\/([a-zA-Z0-9_-]+)/
+  const match1 = url.match(pattern1)
+  if (match1) return match1[1]
+
+  // Pattern 2: https://drive.google.com/open?id={FILE_ID}
+  const pattern2 = /[?&]id=([a-zA-Z0-9_-]+)/
+  const match2 = url.match(pattern2)
+  if (match2) return match2[1]
+
+  return null
+}
+
 export default function ChallengeEditorPage() {
   const router = useRouter()
   const params = useParams()
@@ -45,6 +66,7 @@ export default function ChallengeEditorPage() {
   const [newOptionText, setNewOptionText] = useState('')
   const [validationError, setValidationError] = useState('')
   const [audioLoading, setAudioLoading] = useState(false)
+  const [pdfLoading, setPdfLoading] = useState(false)
 
   useEffect(() => {
     if (challengeId) {
@@ -218,9 +240,15 @@ export default function ChallengeEditorPage() {
     }
 
     // PDF validation
-    if (challenge.type === 'PDF' && !challenge.pdf_url) {
-      setValidationError('PDF challenges require a PDF URL')
-      return false
+    if (challenge.type === 'PDF') {
+      if (!challenge.pdf_url) {
+        setValidationError('PDF challenges require a PDF URL')
+        return false
+      }
+      if (!isValidGoogleDrivePdfUrl(challenge.pdf_url)) {
+        setValidationError('Invalid Google Drive PDF link. Make sure the file is shared as "Anyone with the link".')
+        return false
+      }
     }
 
     // TEXT validation
@@ -505,15 +533,79 @@ export default function ChallengeEditorPage() {
           {challenge.type === 'PDF' && (
             <div className="space-y-4 border-t pt-6">
               <div className="space-y-2">
-                <Label htmlFor="pdf_url">PDF URL *</Label>
-                <Input
-                  id="pdf_url"
-                  value={challenge.pdf_url || ''}
-                  onChange={(e) => setChallenge({ ...challenge, pdf_url: e.target.value })}
-                  onBlur={(e) => handleUpdateChallengeField('pdfUrl', e.target.value)}
-                  placeholder="https://example.com/document.pdf"
-                />
+                <Label htmlFor="pdf_url">PDF URL (Google Drive) *</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="pdf_url"
+                    value={challenge.pdf_url || ''}
+                    onChange={(e) => setChallenge({ ...challenge, pdf_url: e.target.value })}
+                    onBlur={(e) => {
+                      const url = e.target.value
+                      // Validate Google Drive URL pattern only (no extension check)
+                      if (url && !isValidGoogleDrivePdfUrl(url)) {
+                        setValidationError('Invalid Google Drive PDF link. Make sure the file is shared as "Anyone with the link".')
+                        return
+                      }
+                      setValidationError('')
+                      handleUpdateChallengeField('pdfUrl', url)
+                    }}
+                    placeholder="https://drive.google.com/file/d/..."
+                    className="flex-1"
+                  />
+                  {challenge.pdf_url && isValidGoogleDrivePdfUrl(challenge.pdf_url) && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        const fileId = extractGoogleDriveFileId(challenge.pdf_url || '')
+                        if (fileId) {
+                          window.open(`https://drive.google.com/file/d/${fileId}/preview`, '_blank')
+                        }
+                      }}
+                      title="Open in Google Drive Preview"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Must be a Google Drive link (no .pdf extension required)
+                </p>
               </div>
+
+              {/* PDF Preview */}
+              {challenge.pdf_url && isValidGoogleDrivePdfUrl(challenge.pdf_url) && (
+                <div className="space-y-2">
+                  <Label>PDF Preview</Label>
+
+                  {pdfLoading && (
+                    <div className="flex items-center gap-2 p-4 border rounded-lg bg-muted/50">
+                      <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+                      <p className="text-sm text-muted-foreground">
+                        Loading your PDF from Google Drive... This may take a moment.
+                      </p>
+                    </div>
+                  )}
+
+                  <iframe
+                    src={`/api/media/gdrive/pdf?url=${encodeURIComponent(challenge.pdf_url)}`}
+                    className="w-full h-[600px] rounded border"
+                    onLoad={() => setPdfLoading(false)}
+                    onLoadStart={() => setPdfLoading(true)}
+                    onError={() => {
+                      setPdfLoading(false)
+                      setValidationError('Failed to load PDF preview. Ensure the file is shared as "Anyone with the link".')
+                    }}
+                  />
+
+                  {!pdfLoading && (
+                    <p className="text-xs text-muted-foreground">
+                      If preview fails, ensure the file is shared as &quot;Anyone with the link&quot;
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
