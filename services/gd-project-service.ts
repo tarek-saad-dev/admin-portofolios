@@ -1,13 +1,20 @@
-import { GDProject, GDProjectInput, GDProjectListParams } from "@/types/gd-project";
+import {
+  GDProject,
+  GDProjectInput,
+  GDProjectListParams,
+  GDProjectListResponse,
+} from "@/types/gd-project";
 
-const BASE_URL = "https://portfolio-graphic-server.vercel.app/api/gd/projects";
+const BASE_URL =
+  process.env.NEXT_PUBLIC_GD_PROJECTS_API_URL ||
+  "https://portfolio-graphic-server.vercel.app/api/gd/projects";
 
 /**
  * Build query string from params
  */
 function buildQueryString(params: GDProjectListParams): string {
   const searchParams = new URLSearchParams();
-  
+
   if (params.includeDraft !== undefined) {
     searchParams.append("includeDraft", String(params.includeDraft));
   }
@@ -26,45 +33,57 @@ function buildQueryString(params: GDProjectListParams): string {
   if (params.limit !== undefined) {
     searchParams.append("limit", String(params.limit));
   }
-  
+
   const queryString = searchParams.toString();
   return queryString ? `?${queryString}` : "";
 }
 
 /**
  * List all GD projects with optional filters
+ * Returns either an array or an object with data property
  */
-export async function listGDProjects(params: GDProjectListParams = {}): Promise<GDProject[]> {
+export async function listGDProjects(
+  params: GDProjectListParams = {},
+): Promise<GDProject[] | GDProjectListResponse> {
   const queryString = buildQueryString(params);
   const response = await fetch(`${BASE_URL}${queryString}`);
-  
+
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Failed to fetch projects" }));
+    const error = await response
+      .json()
+      .catch(() => ({ message: "Failed to fetch projects" }));
     throw new Error(error.message || "Failed to fetch projects");
   }
-  
+
   return response.json();
 }
 
 /**
  * Get a single GD project by slug
  */
-export async function getGDProject(slug: string, includeDraft: boolean = true): Promise<GDProject> {
+export async function getGDProject(
+  slug: string,
+  includeDraft: boolean = true,
+): Promise<GDProject> {
   const queryString = includeDraft ? "?includeDraft=true" : "";
   const response = await fetch(`${BASE_URL}/${slug}${queryString}`);
-  
+
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Failed to fetch project" }));
+    const error = await response
+      .json()
+      .catch(() => ({ message: "Failed to fetch project" }));
     throw new Error(error.message || "Failed to fetch project");
   }
-  
+
   return response.json();
 }
 
 /**
  * Create a new GD project
  */
-export async function createGDProject(project: GDProjectInput): Promise<GDProject> {
+export async function createGDProject(
+  project: GDProjectInput,
+): Promise<GDProject> {
   const response = await fetch(BASE_URL, {
     method: "POST",
     headers: {
@@ -72,19 +91,24 @@ export async function createGDProject(project: GDProjectInput): Promise<GDProjec
     },
     body: JSON.stringify(project),
   });
-  
+
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Failed to create project" }));
+    const error = await response
+      .json()
+      .catch(() => ({ message: "Failed to create project" }));
     throw new Error(error.message || "Failed to create project");
   }
-  
+
   return response.json();
 }
 
 /**
  * Update an existing GD project
  */
-export async function updateGDProject(slug: string, project: GDProjectInput): Promise<GDProject> {
+export async function updateGDProject(
+  slug: string,
+  project: GDProjectInput,
+): Promise<GDProject> {
   const response = await fetch(`${BASE_URL}/${slug}`, {
     method: "PUT",
     headers: {
@@ -92,12 +116,14 @@ export async function updateGDProject(slug: string, project: GDProjectInput): Pr
     },
     body: JSON.stringify(project),
   });
-  
+
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Failed to update project" }));
+    const error = await response
+      .json()
+      .catch(() => ({ message: "Failed to update project" }));
     throw new Error(error.message || "Failed to update project");
   }
-  
+
   return response.json();
 }
 
@@ -108,9 +134,11 @@ export async function deleteGDProject(slug: string): Promise<void> {
   const response = await fetch(`${BASE_URL}/${slug}`, {
     method: "DELETE",
   });
-  
+
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Failed to delete project" }));
+    const error = await response
+      .json()
+      .catch(() => ({ message: "Failed to delete project" }));
     throw new Error(error.message || "Failed to delete project");
   }
 }
@@ -118,10 +146,13 @@ export async function deleteGDProject(slug: string): Promise<void> {
 /**
  * Toggle project status (draft <-> published)
  */
-export async function toggleGDProjectStatus(slug: string, currentStatus: "draft" | "published"): Promise<GDProject> {
+export async function toggleGDProjectStatus(
+  slug: string,
+  currentStatus: "draft" | "published",
+): Promise<GDProject> {
   const project = await getGDProject(slug);
   const newStatus = currentStatus === "draft" ? "published" : "draft";
-  
+
   return updateGDProject(slug, {
     ...project,
     status: newStatus,
@@ -131,9 +162,12 @@ export async function toggleGDProjectStatus(slug: string, currentStatus: "draft"
 /**
  * Toggle featured status
  */
-export async function toggleGDProjectFeatured(slug: string, currentFeatured: boolean): Promise<GDProject> {
+export async function toggleGDProjectFeatured(
+  slug: string,
+  currentFeatured: boolean,
+): Promise<GDProject> {
   const project = await getGDProject(slug);
-  
+
   return updateGDProject(slug, {
     ...project,
     isFeatured: !currentFeatured,

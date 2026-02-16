@@ -8,6 +8,7 @@ export interface ImageMetadata {
   height: number;
   caption?: string;
   order?: number;
+  publicId?: string; // Cloudinary public ID for deletion
 }
 
 /**
@@ -18,6 +19,7 @@ export interface CoverImage {
   alt: string;
   width: number;
   height: number;
+  publicId?: string; // Cloudinary public ID for deletion
 }
 
 /**
@@ -66,4 +68,32 @@ export interface GDProjectListParams {
   sort?: string;
   page?: number;
   limit?: number;
+}
+
+/**
+ * API response type for list endpoint
+ */
+export interface GDProjectListResponse {
+  data: GDProject[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  categories?: string[];
+}
+
+/**
+ * Type guard to check if response is an object with data property
+ */
+export function isGDProjectListResponse(
+  response: unknown,
+): response is GDProjectListResponse {
+  return (
+    typeof response === "object" &&
+    response !== null &&
+    "data" in response &&
+    Array.isArray((response as GDProjectListResponse).data)
+  );
 }

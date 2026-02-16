@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { getDbUriForPortfolio } from "@/lib/portfolio-config"
+import { GDProjectsList } from "./gd-projects-list"
 
 interface ProjectsListProps {
   projects: Project[];
@@ -42,7 +43,7 @@ export function ProjectsList({ projects, selectedPortfolio, onProjectAdded, onPr
   // Function to handle project updates
   const handleProjectUpdated = (updatedProject: Project) => {
     const normalized = normalizeProjects([updatedProject])[0];
-    setProjectsList(prev => 
+    setProjectsList(prev =>
       prev.map(project => {
         // Safe comparison that handles both string and number ids
         const projectId = String(project.id ?? '');
@@ -50,10 +51,10 @@ export function ProjectsList({ projects, selectedPortfolio, onProjectAdded, onPr
         return projectId === normalizedId ? normalized : project;
       })
     );
-    
+
     // Also update the parent component's state
     onProjectAdded(normalized);
-    
+
     toast({
       title: "Success",
       description: "Project updated successfully",
@@ -114,17 +115,22 @@ export function ProjectsList({ projects, selectedPortfolio, onProjectAdded, onPr
     }
   };
 
+  // If Graphic Design Portfolio is selected, render the Behance-style GD Projects list
+  if (selectedPortfolio === "graphics") {
+    return <GDProjectsList />
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-semibold">Projects</h2>
-        <ProjectForm 
-          selectedPortfolio={selectedPortfolio} 
-          projects={projectsList} 
+        <ProjectForm
+          selectedPortfolio={selectedPortfolio}
+          projects={projectsList}
           onProjectAdded={(newProject) => {
             setProjectsList(prev => [...prev, newProject]);
             onProjectAdded(newProject);
-          }} 
+          }}
         />
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -169,13 +175,13 @@ export function ProjectsList({ projects, selectedPortfolio, onProjectAdded, onPr
 }
 
 // Updated Card component to display individual project information
-function ProjectCard({ 
-  project, 
+function ProjectCard({
+  project,
   selectedPortfolio,
   onProjectUpdated,
   onDeleteClick
-}: { 
-  project: Project; 
+}: {
+  project: Project;
   selectedPortfolio: string;
   onProjectUpdated: (project: Project) => void;
   onDeleteClick: () => void;
@@ -204,7 +210,7 @@ function ProjectCard({
         <ProjectForm
           selectedPortfolio={selectedPortfolio}
           projects={[project]}
-          onProjectAdded={() => {}}
+          onProjectAdded={() => { }}
           onProjectUpdated={onProjectUpdated}
           projectToEdit={project}
           isEditMode={true}
@@ -214,8 +220,8 @@ function ProjectCard({
             </Button>
           }
         />
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           size="icon"
           onClick={onDeleteClick}
         >

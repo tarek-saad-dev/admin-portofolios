@@ -13,19 +13,26 @@ interface GalleryBuilderProps {
 }
 
 export function GalleryBuilder({ gallery, mockups, onChange }: GalleryBuilderProps) {
+  // Defensive fallbacks for undefined gallery properties
+  const safeGallery: Gallery = {
+    sliderImages: gallery?.sliderImages ?? [],
+    verticalImages: gallery?.verticalImages ?? []
+  }
+  const safeMockups = mockups ?? []
+
   const handleSliderChange = (images: ImageMetadata[]) => {
-    onChange({ ...gallery, sliderImages: images }, mockups)
+    onChange({ ...safeGallery, sliderImages: images }, safeMockups)
   }
 
   const handleVerticalChange = (images: ImageMetadata[]) => {
-    onChange({ ...gallery, verticalImages: images }, mockups)
+    onChange({ ...safeGallery, verticalImages: images }, safeMockups)
   }
 
   const handleMockupsChange = (images: ImageMetadata[]) => {
-    onChange(gallery, images)
+    onChange(safeGallery, images)
   }
 
-  const hasMinimumContent = gallery.sliderImages.length > 0 || gallery.verticalImages.length > 0
+  const hasMinimumContent = safeGallery.sliderImages.length > 0 || safeGallery.verticalImages.length > 0
 
   return (
     <Card>
@@ -46,13 +53,13 @@ export function GalleryBuilder({ gallery, mockups, onChange }: GalleryBuilderPro
         <Tabs defaultValue="slider" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="slider">
-              Slider Images ({gallery.sliderImages.length})
+              Slider Images ({safeGallery.sliderImages.length})
             </TabsTrigger>
             <TabsTrigger value="vertical">
-              Vertical Flow ({gallery.verticalImages.length})
+              Vertical Flow ({safeGallery.verticalImages.length})
             </TabsTrigger>
             <TabsTrigger value="mockups">
-              Mockups ({mockups.length})
+              Mockups ({safeMockups.length})
             </TabsTrigger>
           </TabsList>
 
@@ -63,8 +70,11 @@ export function GalleryBuilder({ gallery, mockups, onChange }: GalleryBuilderPro
                 <p>These images will appear in a carousel/slider at the top of the project viewer.</p>
               </div>
               <SortableImageList
-                images={gallery.sliderImages}
+                images={safeGallery.sliderImages}
                 onChange={handleSliderChange}
+                title="Slider Images"
+                folder="gd-projects/gallery/slider"
+                defaultAltPrefix="Slider"
               />
             </div>
           </TabsContent>
@@ -76,8 +86,11 @@ export function GalleryBuilder({ gallery, mockups, onChange }: GalleryBuilderPro
                 <p>These images will be displayed in a vertical stacked layout, full-width.</p>
               </div>
               <SortableImageList
-                images={gallery.verticalImages}
+                images={safeGallery.verticalImages}
                 onChange={handleVerticalChange}
+                title="Vertical Flow Images"
+                folder="gd-projects/gallery/vertical"
+                defaultAltPrefix="Vertical"
               />
             </div>
           </TabsContent>
@@ -89,8 +102,11 @@ export function GalleryBuilder({ gallery, mockups, onChange }: GalleryBuilderPro
                 <p>Device mockups and presentation images displayed in a grid layout.</p>
               </div>
               <SortableImageList
-                images={mockups}
+                images={safeMockups}
                 onChange={handleMockupsChange}
+                title="Mockups"
+                folder="gd-projects/mockups"
+                defaultAltPrefix="Mockup"
               />
             </div>
           </TabsContent>

@@ -18,13 +18,15 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { GripVertical, Trash2, Plus } from "lucide-react"
+import { GripVertical, Trash2, Plus, Upload, Loader2 } from "lucide-react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
 import { ImageMetadata } from "@/types/gd-project"
+import { useCloudinaryUpload } from "@/hooks/use-cloudinary-upload"
 
 interface SortableImageItemProps {
   image: ImageMetadata & { id: string }
@@ -156,9 +158,12 @@ interface SortableImageListProps {
   images: ImageMetadata[]
   onChange: (images: ImageMetadata[]) => void
   title?: string
+  folder?: string
+  defaultAltPrefix?: string
 }
 
-export function SortableImageList({ images, onChange, title }: SortableImageListProps) {
+export function SortableImageList({ images, onChange, title, folder = "gd-projects", defaultAltPrefix = "Image" }: SortableImageListProps) {
+  const { uploadMultiple, uploading, progress } = useCloudinaryUpload()
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -212,9 +217,100 @@ export function SortableImageList({ images, onChange, title }: SortableImageList
     onChange(reordered)
   }
 
+  const handleMultiUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    // Validate file types
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+    const filesArray = Array.from(files)
+    const invalidFiles = filesArray.filter(file => !validTypes.includes(file.type))
+
+    if (invalidFiles.length > 0) {
+      alert('Some files have invalid types. Please upload only JPG, PNG, or WebP images.')
+      return
+    }
+
+    // Validate file sizes (10MB max)
+    const maxSize = 10 * 1024 * 1024
+    const oversizedFiles = filesArray.filter(file => file.size > maxSize)
+
+    if (oversizedFiles.length > 0) {
+      alert('Some files are too large. Maximum size is 10MB per file.')
+      return
+    }
+
+    const results = await uploadMultiple(filesArray, folder)
+
+    if (results.length > 0) {
+      const currentLength = images.length
+      const newImages: ImageMetadata[] = results.map((result, index) => ({
+        url: result.url,
+        alt: `${defaultAltPrefix} ${currentLength + index + 1}`,
+        width: result.width,
+        height: result.height,
+        caption: '',
+        order: currentLength + index + 1,
+        publicId: result.publicId,
+      }))
+
+      onChange([...images, ...newImages])
+    }
+
+    // Reset file input
+    e.target.value = ''
+  }
+
   return (
     <div className="space-y-4">
       {title && <h3 className="text-lg font-semibold">{title}</h3>}
+
+      {/* Upload Multiple Images Button */}
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="default"
+            className="flex-1"
+            disabled={uploading}
+            onClick={() => document.getElementById(`multi-upload-${title || 'images'}`)?.click()}
+          >
+            {uploading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <Upload className="mr-2 h-4 w-4" />
+                Upload Images
+              </>
+            )}
+          </Button>
+          <Button type="button" variant="outline" onClick={handleAdd}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Manually
+          </Button>
+        </div>
+        <input
+          id={`multi-upload-${title || 'images'}`}
+          type="file"
+          accept="image/jpeg,image/jpg,image/png,image/webp"
+          multiple
+          onChange={handleMultiUpload}
+          className="hidden"
+          disabled={uploading}
+        />
+        {uploading && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span>Uploading images...</span>
+              <span>{Math.round(progress)}%</span>
+            </div>
+            <Progress value={progress} />
+          </div>
+        )}
+      </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={imagesWithIds.map((img) => img.id)} strategy={verticalListSortingStrategy}>
@@ -231,14 +327,9 @@ export function SortableImageList({ images, onChange, title }: SortableImageList
         </SortableContext>
       </DndContext>
 
-      <Button type="button" variant="outline" onClick={handleAdd} className="w-full">
-        <Plus className="h-4 w-4 mr-2" />
-        Add Image
-      </Button>
-
       {images.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-8">
-          No images yet. Click &quot;Add Image&quot; to get started.
+          No images yet. Click &quot;Upload Images&quot; or &quot;Add Manually&quot; to get started.
         </p>
       )}
     </div>
