@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ArrowRight, Briefcase, Lightbulb, Wrench, Settings, BarChart, GraduationCap } from "lucide-react"
+import { ArrowRight, Briefcase, Lightbulb, Wrench, Settings, BarChart, GraduationCap, CheckSquare } from "lucide-react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
@@ -52,6 +52,13 @@ export default function Dashboard() {
           description="Manage courses, units, lessons, challenges, and user progress"
           icon={<GraduationCap className="h-8 w-8" />}
           href="/lms"
+        />
+
+        <ClusterCard
+          title="Tarek OS"
+          description="Multi-department task operating system for managing all your work streams"
+          icon={<CheckSquare className="h-8 w-8" />}
+          href="/admin/os"
         />
       </div>
     </div>
